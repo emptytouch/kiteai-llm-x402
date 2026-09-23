@@ -10,6 +10,50 @@ This is a deliberately different track from the many "wrap a free public API"
 x402 services: an AI endpoint is the protocol's native use case yet was
 completely unrepresented among KiteAI bounty submissions at the time of writing.
 
+## Why an AI endpoint, and not another API wrapper
+
+Most x402 demo services wrap a **free** public API — exchange rates, weather, a
+random quote — and put a paywall in front of it. The payment there is
+essentially decorative: the upstream call costs the operator nothing, so
+nothing about the service actually *requires* micropayments.
+
+An LLM endpoint is the opposite. Every completion carries a **real, variable
+marginal cost** — tokens in, tokens out, and substantially more for a reasoning
+model. That is precisely the shape of problem x402 exists for: many tiny
+machine-to-machine payments, far too small for a card or a subscription.
+Charging `$0.001`–`$0.01` per call is not a gimmick here; it is how the service
+covers a cost that genuinely scales with use.
+
+Tiered pricing falls out of the same observation: a reasoning model burns
+roughly 10× the tokens of a fast general model, so the two are sold at
+different prices instead of being averaged into one flat fee.
+
+### Architecture
+
+```
+      buyer (any Kite testnet key holding pieUSD)
+                    │
+   1. POST /v1/chat ─────────────►  ┌─────────────────────────────┐
+      (no payment header)           │ kiteai-llm-x402             │
+                    │               │                             │
+   2. ◄── 402 + payment-required ───┤ x402 resource server        │
+      (amount set by the tier)      │   exact scheme              │
+                    │               │   eip155:2368 / pieUSD      │
+   3. POST + signed authorization ► │                             │
+      (EIP-3009, value locked)      │   verify ──► settle         │
+                    │               │        (Kite facilitator)   │
+   4. ◄── 200 completion ───────────┤                             │
+      (SSE stream if requested)     │   ──► upstream LLM          │
+                                    │       OpenAI-compatible     │
+                                    │       default: SiliconFlow  │
+                                    │       free tier (¥0)        │
+                                    └─────────────────────────────┘
+```
+
+Payment is enforced **before** the upstream is ever touched: `/healthz` and
+`/v1/models` are free, and a call whose upstream fails returns `502` **without**
+the charge being settled — a buyer never pays for output they did not get.
+
 | | |
 |---|---|
 | `POST /v1/chat` | paid LLM completion — standard tier (`$0.001`) |
@@ -60,6 +104,37 @@ client can pick a tier before paying.
 Both default models sit on SiliconFlow's free quota (¥0 in / ¥0 out), so the
 price gap reflects **capability**, not upstream cost — a pro call costs roughly
 10× the tokens because of its reasoning trace.
+
+## Streaming
+
+Pass `"stream": true` in the body (on either tier) to receive the completion as
+Server-Sent Events instead of a single JSON blob:
+
+```bash
+# after paying — see the buyer quickstart below
+curl -N -X POST "$BASE_URL/v1/chat" \
+  -H "Content-Type: application/json" \
+  -d '{"messages":[{"role":"user","content":"Count to five."}],"stream":true}'
+```
+
+Payment is verified **before** the stream opens. If the upstream fails before the
+first byte the response is `502` and the charge is not settled. Once a stream is
+under way, a mid-stream failure can no longer be refunded on-chain — that is a
+normal property of streaming APIs, not something specific to x402.
+
+## Rate limiting & structured logs
+
+Paid calls consume real upstream quota, so they are rate limited *after* the
+payment gate — only verified, paid requests count toward the limit:
+
+| Env var | Default | Purpose |
+|---|---|---|
+| `RATE_LIMIT_PER_MIN` | `10` | Paid calls per client IP per minute; `0` disables it |
+
+Every paid call emits a structured JSON log line (`chat_ok`,
+`chat_stream_start`, `chat_upstream_failed`, `rate_limited`) carrying tier,
+model, duration and outcome, so usage and failures stay greppable without extra
+tooling.
 
 ## Run locally
 

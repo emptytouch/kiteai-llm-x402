@@ -67,3 +67,36 @@ export async function callLLM(input: CallLLMInput, config: LLMConfig): Promise<u
   }
   return data;
 }
+
+/**
+ * Same as callLLM but requests a streamed response and hands back the raw body
+ * so the caller can pipe it through. Failures before the first byte still
+ * throw, which lets the x402 layer avoid settling a call that never produced
+ * output.
+ */
+export async function callLLMStream(
+  input: CallLLMInput,
+  config: LLMConfig,
+): Promise<{ body: ReadableStream<Uint8Array> }> {
+  const apiKey = config.apiKey;
+  if (!apiKey) throw new Error("LLM_API_KEY is not set");
+  const baseURL = (config.baseURL ?? DEFAULT_BASE_URL).replace(/\/$/, "");
+  const model = input.model || config.model || DEFAULT_MODEL;
+  const url = `${baseURL}/chat/completions`;
+
+  const body: Record<string, unknown> = { model, messages: input.messages, stream: true };
+  if (input.temperature !== undefined) body.temperature = input.temperature;
+  if (input.max_tokens !== undefined) body.max_tokens = input.max_tokens;
+  if (input.top_p !== undefined) body.top_p = input.top_p;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok || !res.body) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(`upstream ${res.status}: ${JSON.stringify(data).slice(0, 200)}`);
+  }
+  return { body: res.body };
+}

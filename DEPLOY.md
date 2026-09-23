@@ -14,6 +14,7 @@
    - `PRICE_USD` = `0.001` (optional; standard tier)
    - `PRICE_USD_PRO` = `0.01` (optional; pro tier)
    - `LLM_MODEL_PRO` = `deepseek-ai/DeepSeek-R1-0528-Qwen3-8B` (optional; pro tier reasoning model)
+   - `RATE_LIMIT_PER_MIN` = `10` (optional; paid calls per IP per minute, `0` disables)
    - `PORT` = leave unset (Render assigns)
 5. Deploy. Your service is live at `https://kiteai-llm-x402.onrender.com`.
 
