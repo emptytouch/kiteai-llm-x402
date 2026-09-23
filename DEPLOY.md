@@ -11,7 +11,9 @@
    - `LLM_BASE_URL` = `https://api.siliconflow.cn/v1` (default; any OpenAI-compatible URL)
    - `LLM_MODEL` = `Qwen/Qwen3-8B` (default; SiliconFlow 9B 以下为**永久免费档，单价 ¥0**；也可换任意模型 id)
    - `KITE_NETWORK` = `testnet`
-   - `PRICE_USD` = `0.001` (optional)
+   - `PRICE_USD` = `0.001` (optional; standard tier)
+   - `PRICE_USD_PRO` = `0.01` (optional; pro tier)
+   - `LLM_MODEL_PRO` = `deepseek-ai/DeepSeek-R1-0528-Qwen3-8B` (optional; pro tier reasoning model)
    - `PORT` = leave unset (Render assigns)
 5. Deploy. Your service is live at `https://kiteai-llm-x402.onrender.com`.
 

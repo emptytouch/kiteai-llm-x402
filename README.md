@@ -12,10 +12,11 @@ completely unrepresented among KiteAI bounty submissions at the time of writing.
 
 | | |
 |---|---|
-| `POST /v1/chat` | paid LLM completion → OpenAI-compatible `chat/completions` |
-| `GET /v1/models` | free — lists the configured default model |
-| `GET /healthz` | free — liveness + pricing + network + upstream |
-| Price | `$0.001` per call in pieUSD (`eip155:2368`) |
+| `POST /v1/chat` | paid LLM completion — standard tier (`$0.001`) |
+| `POST /v1/chat/pro` | paid LLM completion — pro tier, reasoning model (`$0.01`) |
+| `GET /v1/models` | free — lists models and both paid tiers |
+| `GET /healthz` | free — liveness + pricing tiers + network + upstream |
+| Price | `$0.001` standard / `$0.01` pro, per call in pieUSD (`eip155:2368`) |
 | Upstream | OpenAI-compatible, defaults to SiliconFlow free quota (key held server-side, never exposed) |
 | Deployed | `status: testnet` — https://kiteai-llm-x402.onrender.com |
 | Paid proof | see [PROOF.md](./PROOF.md) (≥3 settled tx) |
@@ -31,11 +32,34 @@ without touching code:
 |---|---|---|
 | `LLM_API_KEY` | _(required)_ | API key for the upstream provider |
 | `LLM_BASE_URL` | `https://api.siliconflow.cn/v1` | OpenAI-compatible base URL |
-| `LLM_MODEL` | `Qwen/Qwen3-8B` | Default model id when the caller omits `model` |
+| `LLM_MODEL` | `Qwen/Qwen3-8B` | Standard-tier model id |
+| `PRICE_USD` | `0.001` | Standard-tier price per call |
+| `PRICE_USD_PRO` | `0.01` | Pro-tier price per call |
+| `LLM_MODEL_PRO` | `deepseek-ai/DeepSeek-R1-0528-Qwen3-8B` | Pro-tier (reasoning) model id |
 
 `POST /v1/chat` accepts a `model` field; if provided it is passed through to the
-upstream, otherwise `LLM_MODEL` is used. This keeps the deployment flexible:
-point `LLM_BASE_URL` at Groq, OpenRouter, Together, a local Ollama, etc.
+upstream, otherwise the tier's default model is used. This keeps the deployment
+flexible: point `LLM_BASE_URL` at Groq, OpenRouter, Together, a local Ollama, etc.
+
+## Tiered pricing
+
+x402 is not limited to a single flat price. This service exposes **two paid
+endpoints at different price points**, each routed to a different capability
+class of model:
+
+| Tier | Endpoint | Price | Default model | Character |
+|---|---|---|---|---|
+| standard | `POST /v1/chat` | `$0.001` | `Qwen/Qwen3-8B` | fast, general-purpose |
+| pro | `POST /v1/chat/pro` | `$0.01` | `deepseek-ai/DeepSeek-R1-0528-Qwen3-8B` | slower, reasoning (emits `reasoning_content`) |
+
+The two endpoints are independent x402 resources: each answers with its own
+`402` carrying its own price, and paying one does not unlock the other.
+`GET /v1/models` and `/healthz` expose the tiers and prices for free, so a
+client can pick a tier before paying.
+
+Both default models sit on SiliconFlow's free quota (¥0 in / ¥0 out), so the
+price gap reflects **capability**, not upstream cost — a pro call costs roughly
+10× the tokens because of its reasoning trace.
 
 ## Run locally
 
