@@ -30,7 +30,7 @@ without touching code:
 | Env var | Default | Purpose |
 |---|---|---|
 | `LLM_API_KEY` | _(required)_ | API key for the upstream provider |
-| `LLM_BASE_URL` | `https://api.siliconflow.com/v1` | OpenAI-compatible base URL |
+| `LLM_BASE_URL` | `https://api.siliconflow.cn/v1` | OpenAI-compatible base URL |
 | `LLM_MODEL` | `Qwen/Qwen3-8B` | Default model id when the caller omits `model` |
 
 `POST /v1/chat` accepts a `model` field; if provided it is passed through to the

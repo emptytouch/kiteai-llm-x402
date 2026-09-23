@@ -10,8 +10,12 @@
  * for and grants new accounts free quota — ideal for this zero-cost bounty demo.
  */
 
-/** Default OpenAI-compatible base URL (SiliconFlow). Override with LLM_BASE_URL. */
-export const DEFAULT_BASE_URL = "https://api.siliconflow.com/v1";
+/**
+ * Default OpenAI-compatible base URL — SiliconFlow **中国站 (siliconflow.cn)**.
+ * 国内注册的账号只能用 .cn；国际站 (siliconflow.com) 是另一套账号体系，key 不通用
+ * （用 .com 打中国站 key 会返回 `Token is invalid`）。Override with LLM_BASE_URL.
+ */
+export const DEFAULT_BASE_URL = "https://api.siliconflow.cn/v1";
 
 /** Default model id. Override with LLM_MODEL. Pick any id your provider exposes. */
 export const DEFAULT_MODEL = process.env.LLM_MODEL || "Qwen/Qwen3-8B";
