@@ -21,14 +21,16 @@ sandbox session key, and appends the settlement records to `proof/paid-calls.jso
 
 ## Settlement records
 
-> Fill the table after running `npm run selfpay`. Each row is one paid
-> `POST /v1/chat` that settled on-chain.
+> Generated 2026-09-24 01:55 (GMT+8) by `npm run selfpay`. Each row is one paid
+> `POST /v1/chat` that settled on-chain (EIP-3009, 0.001 pieUSD each).
+> Payer `0x92DF53ED56E3baCc6b9F2b1E10ACdA5355Fbf9C9` → payee `0x9e610Cd701472bF7C815a6404B6Ff88D81838C91`.
+> Upstream model: `Qwen/Qwen3-8B` (SiliconFlow free tier, ¥0 in / ¥0 out).
 
 | # | prompt | paid status | transaction hash |
 |---|--------|-------------|-----------------|
-| 1 | Say hello in exactly three words. | 200 | _run `npm run selfpay`_ |
-| 2 | What is 7 times 6? Answer with the number only. | 200 | _run `npm run selfpay`_ |
-| 3 | Name a primary color. One word. | 200 | _run `npm run selfpay`_ |
+| 1 | Say hello in exactly three words. | 200 | `0x2ad2f404624044fdcd894a56a7d3d8461f754d02f7626c5b2bbead0a3f57517e` |
+| 2 | What is 7 times 6? Answer with the number only. | 200 | `0x9fd0f8c9aecb000a4035fb8e58f9ac230da830b06f267e1737147c96388c19d3` |
+| 3 | Name a primary color. One word. | 200 | `0x4350fbcb8ad2027def8dfd7f33ebe4681954b08ae844deb740e8d2f7107a31d9` |
 
 ## Why a sandbox session key instead of the dashboard CLI
 
