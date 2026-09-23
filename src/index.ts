@@ -2,16 +2,21 @@
  * kiteai-llm-x402 — LLM chat completions behind x402 on the Kite chain.
  *
  * Unlike a generic proxy, this service terminates the paid request and calls
- * an upstream LLM (Groq free tier) with its own API key, returning the model
- * response. Payment is required on POST /v1/chat; discovery endpoints
- * (/healthz, /v1/models) are free so a buyer can inspect the service first.
+ * an upstream LLM (any OpenAI-compatible provider) with its own API key,
+ * returning the model response. Payment is required on POST /v1/chat;
+ * discovery endpoints (/healthz, /v1/models) are free so a buyer can inspect
+ * the service first.
+ *
+ * The upstream is fully env-driven (LLM_API_KEY / LLM_BASE_URL / LLM_MODEL),
+ * so the same image can target SiliconFlow, Groq, OpenRouter, etc. without a
+ * code change. Defaults point at SiliconFlow (card-free, free quota).
  */
 import express, { type Request, type Response } from "express";
 import { paymentMiddleware, x402ResourceServer } from "@x402/express";
 import { ExactEvmScheme } from "@x402/evm/exact/server";
 import { HTTPFacilitatorClient } from "@x402/core/server";
 import { FACILITATOR_URL, kiteChainByName, kiteMoneyParser } from "./kite.js";
-import { callGroq, DEFAULT_MODEL, ALLOWED_MODELS } from "./llm.js";
+import { callLLM, DEFAULT_MODEL, DEFAULT_BASE_URL } from "./llm.js";
 
 const env = (key: string, fallback = ""): string => (process.env[key] ?? "").trim() || fallback;
 
@@ -20,8 +25,14 @@ if (!payTo) throw new Error("PAY_TO is required: the Kite wallet address that re
 const chain = kiteChainByName(env("KITE_NETWORK", "testnet"));
 const priceRaw = env("PRICE_USD", "0.001");
 const price = priceRaw.startsWith("$") ? priceRaw : `$${priceRaw}`;
-const groqKey = env("GROQ_API_KEY");
-if (!groqKey) throw new Error("GROQ_API_KEY is required (free key, no card: https://console.groq.com/keys)");
+const llmKey = env("LLM_API_KEY");
+if (!llmKey) {
+  throw new Error(
+    "LLM_API_KEY is required — an OpenAI-compatible key (e.g. SiliconFlow, free & card-free): https://siliconflow.cn",
+  );
+}
+const llmBaseURL = env("LLM_BASE_URL", DEFAULT_BASE_URL);
+const llmModel = env("LLM_MODEL", DEFAULT_MODEL);
 
 // 1. Facilitator + Kite pricing.
 const facilitator = new HTTPFacilitatorClient({ url: env("FACILITATOR_URL", FACILITATOR_URL) });
@@ -38,6 +49,11 @@ app.disable("x-powered-by");
 app.set("trust proxy", 1);
 app.use(express.json({ limit: "1mb" }));
 
+// Human-readable upstream label for discovery endpoints.
+const upstreamLabel = llmBaseURL.includes("siliconflow")
+  ? "SiliconFlow (OpenAI-compatible, free quota)"
+  : `OpenAI-compatible (${llmBaseURL})`;
+
 // 2. Free discovery endpoints.
 app.get("/healthz", (_req, res) => {
   res.json({
@@ -47,15 +63,16 @@ app.get("/healthz", (_req, res) => {
     asset: chain.assetSymbol,
     price,
     payTo,
-    models: ALLOWED_MODELS,
+    upstream: upstreamLabel,
+    models: [llmModel],
   });
 });
 
 app.get("/v1/models", (_req, res) => {
   res.json({
-    models: ALLOWED_MODELS,
-    upstream: "Groq (free tier)",
-    note: "Pass one of these as the `model` field of POST /v1/chat. Unknown models fall back to the default.",
+    models: [llmModel],
+    upstream: upstreamLabel,
+    note: "Pass `model` in POST /v1/chat to route a specific id; otherwise this default is used. Any OpenAI-compatible model id works.",
   });
 });
 
@@ -71,7 +88,7 @@ app.use(
           payTo,
           maxTimeoutSeconds: 120,
         },
-        description: "Paid LLM chat completion (x402) via Groq free tier",
+        description: `Paid LLM chat completion (x402) via ${upstreamLabel}`,
         mimeType: "application/json",
       },
     },
@@ -79,16 +96,19 @@ app.use(
   ),
 );
 
-// 4. Paid handler: forward to Groq once payment is verified.
+// 4. Paid handler: forward to the upstream LLM once payment is verified.
 app.post("/v1/chat", async (req: Request, res: Response) => {
   const { messages, model, temperature, max_tokens, top_p } = req.body ?? {};
   if (!Array.isArray(messages) || messages.length === 0) {
     res.status(400).json({ error: "messages must be a non-empty array" });
     return;
   }
-  const useModel = typeof model === "string" && ALLOWED_MODELS.includes(model) ? model : DEFAULT_MODEL;
+  const useModel = typeof model === "string" && model.trim() ? model.trim() : llmModel;
   try {
-    const completion = await callGroq({ messages, model: useModel, temperature, max_tokens, top_p }, groqKey);
+    const completion = await callLLM(
+      { messages, model: useModel, temperature, max_tokens, top_p },
+      { apiKey: llmKey, baseURL: llmBaseURL, model: llmModel },
+    );
     res.status(200).json(completion);
   } catch (err) {
     // A >= 400 upstream status means the x402 middleware does NOT settle the charge.
@@ -100,7 +120,7 @@ const port = Number(env("PORT", "8080"));
 if (process.env.NODE_ENV !== "test") {
   app.listen(port, () => {
     console.log(
-      `kiteai-llm-x402 on :${port} -> Groq (network ${chain.network}, ${price}/call to ${payTo})`,
+      `kiteai-llm-x402 on :${port} -> ${upstreamLabel} (network ${chain.network}, ${price}/call to ${payTo})`,
     );
   });
 }

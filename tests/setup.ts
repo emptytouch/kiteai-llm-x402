@@ -8,7 +8,7 @@ import http from "node:http";
 
 process.env.NODE_ENV = "test";
 process.env.PAY_TO = process.env.PAY_TO || "0x9e610Cd701472bF7C815a6404B6ff88D81838C91";
-process.env.GROQ_API_KEY = process.env.GROQ_API_KEY || "test-dummy-key";
+process.env.LLM_API_KEY = process.env.LLM_API_KEY || "test-dummy-key";
 process.env.KITE_NETWORK = process.env.KITE_NETWORK || "testnet";
 
 const facilitator = http.createServer((req, res) => {

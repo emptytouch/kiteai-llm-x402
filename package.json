@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "LLM chat completions behind x402 on the Kite chain (Groq free tier upstream)",
+  "description": "LLM chat completions behind x402 on the Kite chain (OpenAI-compatible upstream, defaults to SiliconFlow free quota)",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",

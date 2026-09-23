@@ -2,17 +2,22 @@
 
 1. Push this repo to GitHub (e.g. `emptytouch/kiteai-llm-x402`).
 2. In Render, **New → Web Service**, connect the repo.
-3. Settings (Render auto-detects Node, but set explicitly):
-   - **Build command:** `npm install`
-   - **Start command:** `npm start`
+3. Settings (the Dockerfile is auto-detected; uniform Docker runtime across all x402 services):
+   - **Runtime:** Docker (Dockerfile present)
    - **Instance type:** Free
 4. **Environment variables:**
    - `PAY_TO` = your Kite wallet (must match the address on the Bounty Dashboard)
-   - `GROQ_API_KEY` = free key from https://console.groq.com/keys
+   - `LLM_API_KEY` = free key from https://siliconflow.cn (card-free, free quota)
+   - `LLM_BASE_URL` = `https://api.siliconflow.com/v1` (default; any OpenAI-compatible URL)
+   - `LLM_MODEL` = `Qwen/Qwen3.5-35B-A3B` (default; any model id your provider exposes)
    - `KITE_NETWORK` = `testnet`
    - `PRICE_USD` = `0.001` (optional)
    - `PORT` = leave unset (Render assigns)
 5. Deploy. Your service is live at `https://kiteai-llm-x402.onrender.com`.
+
+> Note: services created via the Render REST API do **not** get a GitHub webhook,
+> so pushing does **not** auto-deploy. After each push, trigger a build manually
+> with `POST /v1/services/{serviceId}/deploys` (see the `render-x402-deploy` skill).
 
 ## After deploy
 

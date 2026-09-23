@@ -1,7 +1,7 @@
 import request from "supertest";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { app } from "../src/index.js";
-import { callGroq, ALLOWED_MODELS } from "../src/llm.js";
+import { callLLM, DEFAULT_MODEL } from "../src/llm.js";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -14,16 +14,16 @@ describe("GET /healthz", () => {
     expect(r.body.ok).toBe(true);
     expect(r.body.network).toBe("eip155:2368");
     expect(Array.isArray(r.body.models)).toBe(true);
-    expect(r.body.models).toContain("llama-3.3-70b-versatile");
+    expect(r.body.models).toContain(DEFAULT_MODEL);
   });
 });
 
 describe("GET /v1/models", () => {
-  it("returns the allowed model list for free", async () => {
+  it("returns the configured model for free", async () => {
     const r = await request(app).get("/v1/models");
     expect(r.status).toBe(200);
-    expect(r.body.models).toEqual(ALLOWED_MODELS);
-    expect(r.body.upstream).toMatch(/Groq/i);
+    expect(r.body.models).toEqual([DEFAULT_MODEL]);
+    expect(r.body.upstream).toMatch(/SiliconFlow|OpenAI/i);
   });
 });
 
@@ -39,17 +39,17 @@ describe("POST /v1/chat unpaid", () => {
   });
 });
 
-describe("callGroq", () => {
-  it("forwards to Groq and returns the JSON payload", async () => {
+describe("callLLM", () => {
+  it("forwards to the upstream and returns the JSON payload", async () => {
     const fakeRes = {
       ok: true,
       status: 200,
       json: async () => ({ id: "chatcmpl-1", choices: [{ message: { role: "assistant", content: "hello" } }] }),
     };
     vi.stubGlobal("fetch", vi.fn(async () => fakeRes));
-    const out = (await callGroq(
-      { messages: [{ role: "user", content: "hi" }], model: "llama-3.3-70b-versatile" },
-      "dummy-key",
+    const out = (await callLLM(
+      { messages: [{ role: "user", content: "hi" }], model: DEFAULT_MODEL },
+      { apiKey: "dummy-key" },
     )) as { id: string };
     expect(out.id).toBe("chatcmpl-1");
   });
@@ -58,7 +58,7 @@ describe("callGroq", () => {
     const fakeRes = { ok: false, status: 429, json: async () => ({ error: "rate limited" }) };
     vi.stubGlobal("fetch", vi.fn(async () => fakeRes));
     await expect(
-      callGroq({ messages: [{ role: "user", content: "hi" }], model: "llama-3.3-70b-versatile" }, "dummy-key"),
-    ).rejects.toThrow(/Groq 429/);
+      callLLM({ messages: [{ role: "user", content: "hi" }], model: DEFAULT_MODEL }, { apiKey: "dummy-key" }),
+    ).rejects.toThrow(/upstream 429/);
   });
 });
