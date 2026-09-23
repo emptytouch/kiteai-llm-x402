@@ -62,15 +62,48 @@ curl -i "$BASE_URL/v1/models"
 BASE_URL="$BASE_URL" npm run selfpay
 ```
 
+## Verify it yourself (buyer quickstart)
+
+Anyone holding a funded Kite testnet key can pay for a call and watch it settle —
+no allowlist, no special access. Because the host is not in Kite's catalog,
+`kpass session execute` refuses it client-side; this script signs the
+EIP-3009 authorization directly instead.
+
+```bash
+npm install
+
+# Option A: any Kite testnet private key holding pieUSD
+BUYER_PRIVATE_KEY=0x<hex> \
+BASE_URL=https://kiteai-llm-x402.onrender.com \
+node examples/paid-call.mjs
+
+# Option B: an existing Kite Passport sandbox session
+KITE_SESSION_FILE=/path/to/.kite-passport/sandbox/sessions.json \
+BASE_URL=https://kiteai-llm-x402.onrender.com \
+node examples/paid-call.mjs
+
+# single custom prompt
+PROMPT="Reply with the single word: ok" npm run selfpay
+```
+
+Key resolution order: `BUYER_PRIVATE_KEY` → `KITE_SESSION_FILE` → auto-detect
+(`./.kite-passport/sandbox/sessions.json`, `~/.kite-passport/sandbox/sessions.json`).
+Each call prints the unpaid `402`, the authorization it signed, the paid status
+and the settlement tx hash; every record is appended to `proof/paid-calls.jsonl`.
+
+You need testnet pieUSD on `eip155:2368` — obtain it from the Kite testnet
+faucet or by creating a Kite Passport sandbox session.
+
 ## Status
 
 `testnet`. The service answers the x402 challenge on `eip155:2368` in pieUSD and
-settles paid calls on-chain (records in [PROOF.md](./PROOF.md)). Note:
-`kpass session execute` currently refuses this host client-side — Kite's
-executable-service catalog does not yet include `kiteai-llm-x402.onrender.com` —
-so paid calls are signed with a Kite Passport sandbox session key via the
-`@x402` client SDK. Admitting the host to the catalog enables the CLI path for
-regular buyers.
+settles paid calls on-chain (records in [PROOF.md](./PROOF.md)).
+
+One caveat for buyers: `kpass session execute` currently refuses this host
+client-side — Kite's executable-service catalog does not yet include
+`kiteai-llm-x402.onrender.com`. Anyone can still pay using the buyer script
+above, which signs the EIP-3009 authorization directly via the `@x402` client
+SDK. Admitting the host to the catalog would additionally enable the CLI path.
 
 ## Tests
 

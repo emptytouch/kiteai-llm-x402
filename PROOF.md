@@ -8,16 +8,27 @@ flow produces fresh, verifiable hashes.
 
 ## How to reproduce
 
+The buyer side needs no allowlist — any Kite testnet key holding pieUSD works.
+
 ```bash
-# 1. deploy the service (see DEPLOY.md) and note its public URL
-# 2. make sure the Kite Passport sandbox session exists at:
-#    D:/Web3/kiteai/kpass/.kite-passport/sandbox/sessions.json
-# 3. run the self-pay generator
-BASE_URL=https://kiteai-llm-x402.onrender.com npm run selfpay
+npm install
+
+# Option A: raw private key (any funded Kite testnet key)
+BUYER_PRIVATE_KEY=0x<hex> \
+BASE_URL=https://kiteai-llm-x402.onrender.com \
+node examples/paid-call.mjs
+
+# Option B: an existing Kite Passport sandbox session
+KITE_SESSION_FILE=/path/to/.kite-passport/sandbox/sessions.json \
+BASE_URL=https://kiteai-llm-x402.onrender.com \
+node examples/paid-call.mjs
 ```
 
-The script posts three distinct chat prompts, pays each one via a Kite Passport
-sandbox session key, and appends the settlement records to `proof/paid-calls.jsonl`.
+The key is resolved as `BUYER_PRIVATE_KEY` → `KITE_SESSION_FILE` → auto-detect
+(`./.kite-passport/sandbox/sessions.json`, `~/.kite-passport/sandbox/sessions.json`).
+
+The script posts three distinct chat prompts, pays each one, and appends the
+settlement records to `proof/paid-calls.jsonl`.
 
 ## Settlement records
 
@@ -32,12 +43,12 @@ sandbox session key, and appends the settlement records to `proof/paid-calls.jso
 | 2 | What is 7 times 6? Answer with the number only. | 200 | `0x9fd0f8c9aecb000a4035fb8e58f9ac230da830b06f267e1737147c96388c19d3` |
 | 3 | Name a primary color. One word. | 200 | `0x4350fbcb8ad2027def8dfd7f33ebe4681954b08ae844deb740e8d2f7107a31d9` |
 
-## Why a sandbox session key instead of the dashboard CLI
+## Why a direct script instead of the dashboard CLI
 
 `kpass session execute` refuses to pay this host client-side — Kite's
 executable-service catalog does not yet list `kiteai-llm-x402.onrender.com`
-(`sandbox_merchant_not_allowlisted`). The payment above is therefore signed with
-a Kite Passport sandbox session key through the `@x402` client SDK directly
-against the Kite facilitator. Asking Kite to admit the host to the catalog
-enables the CLI path for regular buyers. The settlement is identical on-chain
-regardless of which client signed it.
+(`sandbox_merchant_not_allowlisted`). This blocks only the official CLI path:
+**any** buyer can still pay by signing the EIP-3009 authorization directly with
+the `@x402` client SDK, which is exactly what `examples/paid-call.mjs` does.
+Asking Kite to admit the host to the catalog would additionally enable the CLI.
+The settlement is identical on-chain regardless of which client signed it.
