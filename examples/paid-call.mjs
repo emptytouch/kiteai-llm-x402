@@ -86,15 +86,20 @@ const coreClient = x402Client.fromConfig({
 });
 const client = new x402HTTPClient(coreClient);
 
-const prompts = process.env.PROMPT
-  ? [process.env.PROMPT]
+// NOTE: deliberately not `PROMPT` — Windows exports a PROMPT variable ($P$G)
+// that Git Bash inherits, which would silently override these defaults.
+const prompts = process.env.CHAT_PROMPT
+  ? [process.env.CHAT_PROMPT]
   : [
       "Say hello in exactly three words.",
       "What is 7 times 6? Answer with the number only.",
       "Name a primary color. One word.",
     ];
 
-const url = `${BASE}/v1/chat`;
+// Two independently priced tiers; TIER=pro targets the pricier reasoning endpoint.
+const tier = (process.env.TIER || "standard").toLowerCase();
+const endpoint = tier === "pro" ? "/v1/chat/pro" : "/v1/chat";
+const url = `${BASE}${endpoint}`;
 const headers0 = { "Content-Type": "application/json" };
 const proofDir = path.join(process.cwd(), "proof");
 fs.mkdirSync(proofDir, { recursive: true });
@@ -102,7 +107,8 @@ const outFile = path.join(proofDir, "paid-calls.jsonl");
 
 const rows = [];
 for (let i = 0; i < prompts.length; i++) {
-  const chatBody = { messages: [{ role: "user", content: prompts[i] }], model: "Qwen/Qwen3-8B" };
+  // Omit `model` so the server applies the tier's default model.
+  const chatBody = { messages: [{ role: "user", content: prompts[i] }] };
   console.log(`\n================ call ${i + 1} :: ${prompts[i]}`);
 
   const r1 = await fetch(url, { method: "POST", headers: headers0, body: JSON.stringify(chatBody) });

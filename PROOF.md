@@ -43,6 +43,23 @@ settlement records to `proof/paid-calls.jsonl`.
 | 2 | What is 7 times 6? Answer with the number only. | 200 | `0x9fd0f8c9aecb000a4035fb8e58f9ac230da830b06f267e1737147c96388c19d3` |
 | 3 | Name a primary color. One word. | 200 | `0x4350fbcb8ad2027def8dfd7f33ebe4681954b08ae844deb740e8d2f7107a31d9` |
 
+## Pro tier settlement records
+
+The pro tier is a **separately priced** x402 resource: `POST /v1/chat/pro`
+charges `$0.01` per call (10× the standard tier) and routes to a reasoning
+model (`deepseek-ai/DeepSeek-R1-0528-Qwen3-8B`). Generated 2026-09-24 02:47
+(GMT+8) with `TIER=pro npm run selfpay`.
+
+| # | prompt | paid status | transaction hash |
+|---|--------|-------------|-----------------|
+| 1 | Say hello in exactly three words. | 200 | `0xab46f553aa2e5b270606d75d1830e4325c302fc91d84ef818e647e6dff2158f1` |
+| 2 | What is 7 times 6? Answer with the number only. | 200 | `0x7a70705736ad6e99896152993fc5d4a2b77eed573e9961e328b2138738f5515d` |
+| 3 | Name a primary color. One word. | 200 | `0x41caadf8d0445085a554aa7206e394bea38f5a58f29c1e86aa2302ce84ba34ff` |
+
+Each call authorised `10000000000000000` wei of pieUSD, against
+`1000000000000000` on the standard tier — the two endpoints are priced
+independently and each settles on its own terms.
+
 ## Why a direct script instead of the dashboard CLI
 
 `kpass session execute` refuses to pay this host client-side — Kite's

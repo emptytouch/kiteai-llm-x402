@@ -107,7 +107,10 @@ BASE_URL=https://kiteai-llm-x402.onrender.com \
 node examples/paid-call.mjs
 
 # single custom prompt
-PROMPT="Reply with the single word: ok" npm run selfpay
+CHAT_PROMPT="Reply with the single word: ok" npm run selfpay
+
+# pay the pro tier ($0.01 per call, reasoning model)
+TIER=pro npm run selfpay
 ```
 
 Key resolution order: `BUYER_PRIVATE_KEY` → `KITE_SESSION_FILE` → auto-detect
