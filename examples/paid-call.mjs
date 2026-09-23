@@ -109,6 +109,7 @@ const rows = [];
 for (let i = 0; i < prompts.length; i++) {
   // Omit `model` so the server applies the tier's default model.
   const chatBody = { messages: [{ role: "user", content: prompts[i] }] };
+  if (process.env.STREAM === "1") chatBody.stream = true;
   console.log(`\n================ call ${i + 1} :: ${prompts[i]}`);
 
   const r1 = await fetch(url, { method: "POST", headers: headers0, body: JSON.stringify(chatBody) });

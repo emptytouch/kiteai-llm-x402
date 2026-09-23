@@ -51,30 +51,34 @@ const llmModelPro = env("LLM_MODEL_PRO", "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B"
 
 // Rate limiting. Paid calls consume the upstream quota, so cap them per client.
 // Set RATE_LIMIT_PER_MIN=0 to disable (useful for load tests).
-const ratePerMin = Number(env("RATE_LIMIT_PER_MIN", "10"));
-const buckets = new Map<string, { count: number; resetAt: number }>();
-
-function rateLimit(req: Request, res: Response, next: NextFunction): void {
-  if (!Number.isFinite(ratePerMin) || ratePerMin <= 0) {
+// Exported as a factory so the behaviour can be unit tested directly.
+export function createRateLimiter(perMin: number) {
+  const buckets = new Map<string, { count: number; resetAt: number }>();
+  return function rateLimit(req: Request, res: Response, next: NextFunction): void {
+    if (!Number.isFinite(perMin) || perMin <= 0) {
+      next();
+      return;
+    }
+    const key = req.ip ?? "unknown";
+    const now = Date.now();
+    const bucket = buckets.get(key);
+    if (!bucket || now > bucket.resetAt) {
+      buckets.set(key, { count: 1, resetAt: now + 60_000 });
+      next();
+      return;
+    }
+    if (bucket.count >= perMin) {
+      log("warn", "rate_limited", { key, path: req.path });
+      res.status(429).json({ error: "rate limit exceeded", limit_per_min: perMin });
+      return;
+    }
+    bucket.count += 1;
     next();
-    return;
-  }
-  const key = req.ip ?? "unknown";
-  const now = Date.now();
-  const bucket = buckets.get(key);
-  if (!bucket || now > bucket.resetAt) {
-    buckets.set(key, { count: 1, resetAt: now + 60_000 });
-    next();
-    return;
-  }
-  if (bucket.count >= ratePerMin) {
-    log("warn", "rate_limited", { key, path: req.path });
-    res.status(429).json({ error: "rate limit exceeded", limit_per_min: ratePerMin });
-    return;
-  }
-  bucket.count += 1;
-  next();
+  };
 }
+
+const ratePerMin = Number(env("RATE_LIMIT_PER_MIN", "10"));
+const rateLimit = createRateLimiter(ratePerMin);
 
 // 1. Facilitator + Kite pricing.
 const facilitator = new HTTPFacilitatorClient({ url: env("FACILITATOR_URL", FACILITATOR_URL) });
@@ -112,6 +116,7 @@ app.get("/healthz", (_req, res) => {
     upstream: upstreamLabel,
     models: [llmModel, llmModelPro],
     tiers,
+    rateLimitPerMin: ratePerMin,
   });
 });
 

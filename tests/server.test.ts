@@ -1,6 +1,6 @@
 import request from "supertest";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { app } from "../src/index.js";
+import { app, createRateLimiter } from "../src/index.js";
 import { callLLM, DEFAULT_MODEL } from "../src/llm.js";
 
 afterEach(() => {
@@ -65,6 +65,58 @@ describe("tiered pricing", () => {
     const stdAmount = decodeAmount(std.headers["payment-required"]);
     const proAmount = decodeAmount(pro.headers["payment-required"]);
     expect(BigInt(proAmount)).toBeGreaterThan(BigInt(stdAmount));
+  });
+});
+
+describe("rate limiter", () => {
+  // minimal stand-in for an Express Response
+  const mkRes = () => {
+    const res: any = { statusCode: 0, body: null };
+    res.status = (c: number) => {
+      res.statusCode = c;
+      return res;
+    };
+    res.json = (b: unknown) => {
+      res.body = b;
+      return res;
+    };
+    return res;
+  };
+  const mkReq = (ip: string) => ({ ip, path: "/v1/chat" }) as any;
+
+  it("allows up to the limit, then returns 429", () => {
+    const limiter = createRateLimiter(2);
+    let passed = 0;
+    const next = () => {
+      passed += 1;
+    };
+
+    limiter(mkReq("1.2.3.4"), mkRes(), next);
+    limiter(mkReq("1.2.3.4"), mkRes(), next);
+    const third = mkRes();
+    limiter(mkReq("1.2.3.4"), third, next);
+
+    expect(passed).toBe(2);
+    expect(third.statusCode).toBe(429);
+  });
+
+  it("counts each client separately", () => {
+    const limiter = createRateLimiter(1);
+    const next = () => {};
+    limiter(mkReq("1.1.1.1"), mkRes(), next);
+    const other = mkRes();
+    limiter(mkReq("2.2.2.2"), other, next);
+    expect(other.statusCode).toBe(0); // different client is not limited
+  });
+
+  it("is a no-op when disabled", () => {
+    const limiter = createRateLimiter(0);
+    let passed = 0;
+    const next = () => {
+      passed += 1;
+    };
+    for (let i = 0; i < 5; i++) limiter(mkReq("1.2.3.4"), mkRes(), next);
+    expect(passed).toBe(5);
   });
 });
 
