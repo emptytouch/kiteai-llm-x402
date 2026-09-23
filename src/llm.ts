@@ -14,7 +14,7 @@
 export const DEFAULT_BASE_URL = "https://api.siliconflow.com/v1";
 
 /** Default model id. Override with LLM_MODEL. Pick any id your provider exposes. */
-export const DEFAULT_MODEL = process.env.LLM_MODEL || "Qwen/Qwen3.5-35B-A3B";
+export const DEFAULT_MODEL = process.env.LLM_MODEL || "Qwen/Qwen3-8B";
 
 export interface ChatMessage {
   role: string;

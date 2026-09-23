@@ -51,7 +51,7 @@ const outFile = path.join(proofDir, "paid-calls.jsonl");
 
 const rows = [];
 for (let i = 0; i < prompts.length; i++) {
-  const chatBody = { messages: [{ role: "user", content: prompts[i] }], model: "Qwen/Qwen3.5-35B-A3B" };
+  const chatBody = { messages: [{ role: "user", content: prompts[i] }], model: "Qwen/Qwen3-8B" };
   console.log(`\n================ call ${i + 1} :: ${prompts[i]}`);
 
   const r1 = await fetch(url, { method: "POST", headers: headers0, body: JSON.stringify(chatBody) });

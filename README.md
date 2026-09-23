@@ -31,7 +31,7 @@ without touching code:
 |---|---|---|
 | `LLM_API_KEY` | _(required)_ | API key for the upstream provider |
 | `LLM_BASE_URL` | `https://api.siliconflow.com/v1` | OpenAI-compatible base URL |
-| `LLM_MODEL` | `Qwen/Qwen3.5-35B-A3B` | Default model id when the caller omits `model` |
+| `LLM_MODEL` | `Qwen/Qwen3-8B` | Default model id when the caller omits `model` |
 
 `POST /v1/chat` accepts a `model` field; if provided it is passed through to the
 upstream, otherwise `LLM_MODEL` is used. This keeps the deployment flexible:
@@ -56,7 +56,7 @@ curl -i "$BASE_URL/healthz"
 # 200 {"ok":true,"network":"eip155:2368","asset":"pieUSD","price":"$0.001","upstream":"SiliconFlow ...", ...}
 
 curl -i "$BASE_URL/v1/models"
-# 200 {"models":["Qwen/Qwen3.5-35B-A3B"],"upstream":"SiliconFlow (OpenAI-compatible, free quota)"}
+# 200 {"models":["Qwen/Qwen3-8B"],"upstream":"SiliconFlow (OpenAI-compatible, free quota)"}
 
 # Pay a chat call (self-pay, see PROOF.md for the full flow):
 BASE_URL="$BASE_URL" npm run selfpay

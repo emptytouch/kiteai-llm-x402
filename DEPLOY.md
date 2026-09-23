@@ -9,7 +9,7 @@
    - `PAY_TO` = your Kite wallet (must match the address on the Bounty Dashboard)
    - `LLM_API_KEY` = free key from https://siliconflow.cn (card-free, free quota)
    - `LLM_BASE_URL` = `https://api.siliconflow.com/v1` (default; any OpenAI-compatible URL)
-   - `LLM_MODEL` = `Qwen/Qwen3.5-35B-A3B` (default; any model id your provider exposes)
+   - `LLM_MODEL` = `Qwen/Qwen3-8B` (default; SiliconFlow 9B 以下为**永久免费档，单价 ¥0**；也可换任意模型 id)
    - `KITE_NETWORK` = `testnet`
    - `PRICE_USD` = `0.001` (optional)
    - `PORT` = leave unset (Render assigns)
